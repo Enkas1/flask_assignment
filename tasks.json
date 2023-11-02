@@ -1,0 +1,40 @@
+{
+  "tasks": [
+    {
+      "id": 1,
+      "description": "clean my car",
+      "category": "cleaning",
+      "status": "pending"
+    },
+    {
+      "id": 2,
+      "description": "learn basic python programming",
+      "category": "studying",
+      "status": "pending"
+    },
+    {
+      "id": 3,
+      "description": "create a website",
+      "category": "studying",
+      "status": "pending"
+    },
+    {
+      "id": 4,
+      "description": "run a mile",
+      "category": "health",
+      "status": "pending"
+    },
+    {
+      "id": 5,
+      "description": "weight training",
+      "category": "health",
+      "status": "pending"
+    },
+    {
+      "id": 6,
+      "description": "clean my room",
+      "category": "cleaning",
+      "status": "pending"
+    }
+  ]
+}

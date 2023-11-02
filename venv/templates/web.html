@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Lukas Hemsida</title>
+</head>
+<body style="background-color: cyan;">
+    <img src="https://purepng.com/public/uploads/large/purepng.com-luigimariofictional-charactervideo-gamefranchisenintendodesigner-1701528631379ubgt6.png" width="700" height="700" align="right">
+    <h1>To Do List</h1>
+    <h2>Tasks</h2>
+    <ul>
+        {% for task in tasks['tasks'] %}
+            <li>
+                <strong>Category:</strong> <em>{{ task['category'] }}</em>
+                <strong>Description:</strong> <em>{{ task['description'] }}</em>
+                <strong>Status:</strong> <em>{{ task['status'] }}</em> </li>
+        {% endfor %}
+    </ul>
+    <form action="/submit" method="post">
+        <label for="category"><strong>Category:</strong></label><br>
+        <input type="text" id="category" name="category"><br>
+        <label for="description"><strong>Description:</strong></label><br>
+        <input type="text" id="description" name="description"><br><br>
+        <button type="submit">Add Task</button>
+    </form>
+    <img src="https://purepng.com/public/uploads/large/purepng.com-mariomariofictional-charactervideo-gamefranchisenintendodesigner-1701528634653vywuz.png" width="900" height="600">
+</body>
+</html>
