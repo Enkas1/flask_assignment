@@ -1,9 +1,14 @@
 # --debug = att man slipper starta om programmet efter ändringar
 
-from flask import Flask, request, render_template, redirect, url_for
+from flask import Flask, request, render_template, redirect, url_for, jsonify
 import json
 
 app = Flask(__name__)
+
+
+@app.errorhandler(404)
+def route_not_found(e):
+    return "Route not found. Check if you spelled it correctly"
 
 
 def read_tasks():
@@ -13,7 +18,7 @@ def read_tasks():
             return data
     except FileNotFoundError:
         with open("tasks.json", "w") as f:
-            json.dump({}, f)
+            json.dump({"tasks": []}, f)
         return json.dumps({"Message": "File not found. Created a new tasks file."})
     except json.JSONDecodeError:
         return {"error": "Invalid JSON data in tasks file"}
@@ -51,136 +56,131 @@ def get_tasks():
 @app.route("/tasks/<int:task_id>", methods=["GET"])
 def get_task_id(task_id):
     task_to_get = []
-    try:
-        tasks = read_tasks()
-        task_list = tasks.get("tasks", [])
 
-        for task in task_list:
-            if task["id"] == task_id:
-                task_to_get = task
-                break
+    tasks = read_tasks()
+    task_list = tasks.get("tasks", [])
 
-
-    except FileNotFoundError:
-        return json.dumps({'message': 'File not found'})
+    for task in task_list:
+        if task["id"] == task_id:
+            task_to_get = task
+            break
 
     if task_to_get:
-        return json.dumps(task_to_get, indent=2)
+        return {f"Task {task_id}": task_to_get}
     else:
-        return json.dumps({'message': 'Task not found'})
+        return json.dumps({"message": f"Found no task with id: {task_id}"})
 
 
 @app.route("/tasks", methods=["POST"])
 def post_tasks():
-    try:
-        try:
-            data = read_tasks()
-        except json.JSONDecodeError: # om filen är tom eller i fel format
-            data = {"tasks": []}
 
-        if "tasks" not in data:
-            data["tasks"] = []
+    data = read_tasks()
+    request_json = request.get_json()
+    allowed_keys = ["description", "category"]
 
-        new_task = {"id": len(data["tasks"]) + 1,
-                    "description": request.json.get("description"),
-                    "category": request.json.get("category"),
-                    "status": "pending"
-                    }
-        data["tasks"].append(new_task)
+    for key in request_json.keys():
+        if key not in allowed_keys:
+            response = jsonify(
+                {"error": f"Invalid key {key} in JSON data. Only 'description' and 'category' keys are allowed."})
+            return response
 
-        with open("tasks.json", "w") as f:
-            json.dump(data, f, indent=2)
-        return {"msg": "Task added successfully!"}
+    new_task = {
+        "id": len(data["tasks"]) + 1,
+        "description": request_json.get("description"),
+        "category": request_json.get("category"),
+        "status": "pending"
+    }
+    data["tasks"].append(new_task)
 
-    except FileNotFoundError:
-        return {"msg": "File not found"}
+    with open("tasks.json", "w") as f:
+        json.dump(data, f, indent=2)
+    return {"msg": "Task added successfully!"}
 
 
 @app.route("/tasks/<int:task_id>", methods=["DELETE"])
 def delete_task(task_id):
-    try:
-        tasks = read_tasks()
-        task_list = tasks.get("tasks", [])
 
-        for task in task_list:
-            if task["id"] == task_id:
-                task_list.remove(task)
-                with open("tasks.json", "w") as f:
-                    json.dump(tasks, f, indent=2)
-                return json.dumps({"message": "Task deleted"})
+    tasks = read_tasks()
+    task_list = tasks.get("tasks", [])
 
-    except FileNotFoundError:
-        return json.dumps({'message': 'File not found'})
+    for task in task_list:
+        if task["id"] == task_id:
+            task_list.remove(task)
+            with open("tasks.json", "w") as f:
+                json.dump(tasks, f, indent=2)
+            return json.dumps({"message": "Task deleted"})
 
+    return json.dumps({"message": f"Found no task with id: {task_id}"})
 
-    return json.dumps({'message': 'Task not found'})
 
 
 @app.route("/tasks/<int:task_id>", methods=["PUT"])
 def put_task(task_id):
-    try:
-        data = read_tasks()
-        task_list = data.get("tasks", [])
-        for task in task_list:
-            if task["id"] == task_id:
-                task["description"] = request.json.get("description", task["description"])
-                task["category"] = request.json.get("category", task["category"])
+
+    data = read_tasks()
+    task_list = data.get("tasks", [])
+    for task in task_list:
+        if task["id"] == task_id:
+            task["description"] = request.json.get("description", task["description"])
+            task["category"] = request.json.get("category", task["category"])
 
 
-                with open("tasks.json", "w") as f:
-                    json.dump(data, f, indent=2)
-                return {"msg": "Task updated successfully!"}
+            with open("tasks.json", "w") as f:
+                json.dump(data, f, indent=2)
+            return {"message": "Task updated successfully!"}
 
-    except FileNotFoundError:
-        return {"msg": "File not found"}
+    return {"message": f"Found no task with id: {task_id}"}
+
 
 
 @app.route("/tasks/<int:task_id>/complete", methods=["PUT"])
 def task_complete(task_id):
-    try:
-        data = read_tasks()
-        task_list = data.get("tasks", [])
 
-        for task in task_list:
-            if task["id"] == task_id:
-                task["status"] = "complete"
-                with open("tasks.json", "w") as f:
-                    json.dump(data, f, indent=2)
-                return {"msg": "Task is now complete!"}
+    data = read_tasks()
+    task_list = data.get("tasks", [])
 
-    except FileNotFoundError:
-        return {"msg": "File not found"}
+    for task in task_list:
+        if task["id"] == task_id:
+            task["status"] = "complete"
+            with open("tasks.json", "w") as f:
+                json.dump(data, f, indent=2)
+            return {"message": "Task is now complete!"}
+
+    return {'message': f"Found no task with id: {task_id}"}
+
 
 
 @app.route("/tasks/categories", methods=["GET"])
 def categories():
-    try:
-        category_set = set()
-        data = read_tasks()
-        task_list = data.get("tasks", [])
-        for task in task_list:
-            category_set.add(task["category"])
 
-        unique_categories = list(category_set)
-        return json.dumps(unique_categories, indent=2)
+    category_set = set()
+    data = read_tasks()
+    task_list = data.get("tasks", [])
+    for task in task_list:
+        category_set.add(task["category"])
 
-    except FileNotFoundError:
-        return {"msg": "File not found"}
+    unique_categories = list(category_set)
+    return {"categories": unique_categories}
+
 
 
 @app.route("/tasks/categories/<category_name>", methods=["GET"])
 def get_tasks_by_category(category_name):
-
     data = read_tasks()
     task_list = data.get("tasks", [])
     tasks_in_category = []
+    category_found = False
 
     for task in task_list:
-
         if task.get("category") == category_name:
             tasks_in_category.append(task)
+            category_found = True
 
-    return {"tasks_in_category": tasks_in_category}
+    if not category_found:
+        return json.dumps({"message": f"Found no category with the name: {category_name}"})
+
+    return {f"tasks_in_category - {category_name}": tasks_in_category}
+
 
 
 @app.route("/tasks/completedornot", methods=["GET"])
@@ -196,8 +196,6 @@ def completed_or_not():
         elif task.get("status") == "pending":
             not_completed_tasks.append(task)
     return {"completed tasks": completed_tasks, "Unfinished tasks": not_completed_tasks}
-
-
 
 
 
