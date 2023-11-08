@@ -2,8 +2,29 @@
 
 from flask import Flask, request, render_template, redirect, url_for, jsonify
 import json
-
+import base64
 app = Flask(__name__)
+
+user_credentials = {
+    "username": "password",
+    "admin": "admin123"}
+
+
+def authentication(func):
+    def wrapper(*args, **kwargs):
+        auth = request.headers.get('Authorization')
+        if auth:
+            if auth.startswith("Basic "):
+                auth = auth[len("Basic "):]
+
+                auth_bytes = base64.b64decode(auth)
+                auth_str = auth_bytes.decode("utf-8")
+
+                username, password = auth_str.split(":")
+                if user_credentials.get(username) == password:
+                    return func(*args, **kwargs)
+        return jsonify({"error": "Unauthorized"}), 401
+    return wrapper
 
 
 @app.errorhandler(404)
@@ -98,6 +119,7 @@ def post_tasks():
 
 
 @app.route("/tasks/<int:task_id>", methods=["DELETE"])
+@authentication
 def delete_task(task_id):
 
     tasks = read_tasks()
@@ -113,7 +135,6 @@ def delete_task(task_id):
     return json.dumps({"message": f"Found no task with id: {task_id}"})
 
 
-
 @app.route("/tasks/<int:task_id>", methods=["PUT"])
 def put_task(task_id):
 
@@ -124,13 +145,11 @@ def put_task(task_id):
             task["description"] = request.json.get("description", task["description"])
             task["category"] = request.json.get("category", task["category"])
 
-
             with open("tasks.json", "w") as f:
                 json.dump(data, f, indent=2)
             return {"message": "Task updated successfully!"}
 
     return {"message": f"Found no task with id: {task_id}"}
-
 
 
 @app.route("/tasks/<int:task_id>/complete", methods=["PUT"])
@@ -149,7 +168,6 @@ def task_complete(task_id):
     return {'message': f"Found no task with id: {task_id}"}
 
 
-
 @app.route("/tasks/categories", methods=["GET"])
 def categories():
 
@@ -161,7 +179,6 @@ def categories():
 
     unique_categories = list(category_set)
     return {"categories": unique_categories}
-
 
 
 @app.route("/tasks/categories/<category_name>", methods=["GET"])
@@ -182,7 +199,6 @@ def get_tasks_by_category(category_name):
     return {f"tasks_in_category - {category_name}": tasks_in_category}
 
 
-
 @app.route("/tasks/completedornot", methods=["GET"])
 def completed_or_not():
     data = read_tasks()
@@ -196,7 +212,6 @@ def completed_or_not():
         elif task.get("status") == "pending":
             not_completed_tasks.append(task)
     return {"completed tasks": completed_tasks, "Unfinished tasks": not_completed_tasks}
-
 
 
 if __name__ == '__main__':
