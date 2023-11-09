@@ -12,7 +12,7 @@ user_credentials = {
 
 def authentication(func):
     def wrapper(*args, **kwargs):
-        auth = request.headers.get('Authorization')
+        auth = request.headers.get("Authorization")
         if auth:
             if auth.startswith("Basic "):
                 auth = auth[len("Basic "):]
@@ -29,7 +29,7 @@ def authentication(func):
 
 @app.errorhandler(404)
 def route_not_found(e):
-    return "Route not found. Check if you spelled it correctly"
+    return jsonify({"message": "Route not found. Check if you spelled it correctly"}), 404
 
 
 def read_tasks():
@@ -89,7 +89,7 @@ def get_task_id(task_id):
     if task_to_get:
         return {f"Task {task_id}": task_to_get}
     else:
-        return json.dumps({"message": f"Found no task with id: {task_id}"})
+        return json.dumps({"message": f"Found no task with id: {task_id}"}), 404
 
 
 @app.route("/tasks", methods=["POST"])
@@ -103,7 +103,7 @@ def post_tasks():
         if key not in allowed_keys:
             response = jsonify(
                 {"error": f"Invalid key {key} in JSON data. Only 'description' and 'category' keys are allowed."})
-            return response
+            return response, 400
 
     new_task = {
         "id": len(data["tasks"]) + 1,
@@ -132,7 +132,7 @@ def delete_task(task_id):
                 json.dump(tasks, f, indent=2)
             return json.dumps({"message": "Task deleted"})
 
-    return json.dumps({"message": f"Found no task with id: {task_id}"})
+    return json.dumps({"message": f"Found no task with id: {task_id}"}), 404
 
 
 @app.route("/tasks/<int:task_id>", methods=["PUT"])
@@ -149,7 +149,7 @@ def put_task(task_id):
                 json.dump(data, f, indent=2)
             return {"message": "Task updated successfully!"}
 
-    return {"message": f"Found no task with id: {task_id}"}
+    return {"message": f"Found no task with id: {task_id}"}, 404
 
 
 @app.route("/tasks/<int:task_id>/complete", methods=["PUT"])
@@ -165,7 +165,7 @@ def task_complete(task_id):
                 json.dump(data, f, indent=2)
             return {"message": "Task is now complete!"}
 
-    return {'message': f"Found no task with id: {task_id}"}
+    return {"message": f"Found no task with id: {task_id}"}, 404
 
 
 @app.route("/tasks/categories", methods=["GET"])
@@ -194,9 +194,9 @@ def get_tasks_by_category(category_name):
             category_found = True
 
     if not category_found:
-        return json.dumps({"message": f"Found no category with the name: {category_name}"})
+        return json.dumps({"message": f"Found no category with the name: {category_name}"}), 404
 
-    return {f"tasks_in_category - {category_name}": tasks_in_category}
+    return {"tasks in the same category:": tasks_in_category}
 
 
 @app.route("/tasks/completedornot", methods=["GET"])
